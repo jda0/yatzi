@@ -1,0 +1,658 @@
+<html>
+	<head>
+		<style>
+			body, html {
+				margin: 0; padding: 0;
+			}
+		</style>
+		<script>
+			window.onload = function () {
+				console.log('window.onload');
+
+				var canvas = document.createElement('canvas');
+				var width = canvas.width = window.innerWidth;
+				var height = canvas.height = window.innerHeight;
+
+				var backColor =  '#8bc163';
+				var foreColor =  '#ffffff';
+				var foreColor2 = '#9fd477';
+
+				var sprites = new Image();
+				sprites.src = 'yatzi.png';
+				var offsets = {
+					die1: {x: 	0, y: 	0, x2:   0, y2: 300, w: 128, h: 128 },
+					die2: {x: 136, y: 	0, x2: 136, y2: 300, w: 128, h: 128 },
+					die3: {x: 272, y: 	0, x2: 272, y2: 300, w: 128, h: 128 },
+					die4: {x: 408, y: 	0, x2: 408, y2: 300, w: 128, h: 128 },
+					die5: {x: 544, y: 	0, x2: 544, y2: 300, w: 128, h: 128 },
+					die6: {x: 680, y: 	0, x2: 680, y2: 300, w: 128, h: 128 },
+					three:{x: 816, y:   0, x2: 816, y2: 300, w: 128, h: 128 },
+					four: {x: 	0, y: 136, x2:   0, y2: 436, w: 128, h: 128 },
+					flhse:{x: 136, y: 136, x2: 136, y2: 436, w: 128, h: 128 },
+					yatzi:{x: 272, y: 136, x2: 272, y2: 436, w: 128, h: 128 },
+					smlst:{x: 408, y: 136, x2: 408, y2: 436, w: 128, h: 128 },
+					fulst:{x: 544, y: 136, x2: 544, y2: 436, w: 128, h: 128 },
+					chnc: {x: 680, y: 136, x2: 680, y2: 436, w: 128, h: 128 },
+					outln:{x: 816, y: 136, x2: 816, y2: 436, w: 160, h: 160 },
+					titl: {x:   0, y: 608, w: 520, h: 256},
+					go:   {x: 528, y: 608, x2: 800, y2: 608, w: 128, h: 128},
+					updn: {x: 664, y: 608, w: 128, h: 128},
+					user: {x: 528, y: 744, w: 128, h: 128},
+					ads:  {x: 664, y: 744, w: 128, h: 128}
+				};
+
+				canvas = canvas.getContext('2d', { antialias: true });
+
+				var players = 1;
+				var activePlayers = [];
+				var currentPlayer = 1;
+				var turn = 0;
+				var selectedDice = 0;
+				var playerData = [];
+				var validChoices = [];
+
+				// 0: menu, 1: gameTransition, 2: gamePlay
+				var state = 0;
+
+				sprites.onload = function () {
+					console.log('sprites.onload');
+					players = 1;
+					activePlayers = [];
+					currentPlayer = 1;
+					turn = 0;
+					selectedDice = 0;
+					playerData = [];
+					validChoices = [];
+
+					canvas.font = (width * 0.125) + 'px Signika';
+					canvas.textBaseline = 'top';
+
+					currentHandle = canvas.canvas.addEventListener('touchstart', handleManager);
+
+					state = 0;
+
+					canvas.fillStyle = backColor;
+					canvas.fillRect(0, 0, width, height);
+
+					canvas.fillStyle = foreColor;
+					canvas.drawImage(sprites, offsets.titl.x, offsets.titl.y, offsets.titl.w, offsets.titl.h,
+						width * 0.15, height * 0.15, width * 0.7, width * 0.7 * offsets.titl.h / offsets.titl.w);
+					canvas.drawImage(sprites, offsets.user.x, offsets.user.y, offsets.user.w, offsets.user.h,
+						width * 0.25, height * 0.5, width * 0.15, width * 0.15 * offsets.user.h / offsets.user.w);
+					canvas.textAlign = 'right';
+					canvas.fillText(players, width * 0.625, height * 0.5125);
+					canvas.drawImage(sprites, offsets.updn.x, offsets.updn.y, offsets.updn.w, offsets.updn.h,
+						width * 0.65, height * 0.505, width * 0.1, width * 0.1 * offsets.updn.h / offsets.updn.w);
+					canvas.drawImage(sprites, offsets.go.x, offsets.go.y, offsets.go.w, offsets.go.h,
+						width * 0.4, height * 0.625, width * 0.2, width * 0.2 * offsets.go.h / offsets.go.w);
+				};
+
+				var handleManager = function (e) {
+					console.log('handleManager');
+
+					switch (state) {
+						case 0:
+							return menuHandle(e);
+							break;
+						case 1:
+							return gameTransitionHandle(e);
+							break;
+						case 2:
+							return gamePlayHandle(e);
+							break;
+						case 3:
+							return endHandle(e);
+							break;
+					}
+				};
+
+				var menuHandle = function (e) {
+					console.log('menuHandle');
+
+					for (var i = 0; i < e.changedTouches.length; i++) {
+						var x = e.changedTouches[i].clientX, y = e.changedTouches[i].clientY;
+						if (x > width * 0.65 && x < width * 0.75 && y > height * 0.5 && y < height * 0.5 + width * 0.05) {
+							players++;
+							canvas.fillStyle = backColor;
+							canvas.fillRect(width * 0.4, height * 0.5, width * 0.225, width * 0.125);
+							canvas.fillStyle = foreColor;
+							canvas.fillText(players, width * 0.625, height * 0.5);
+						}
+						else if (x > width * 0.65 && x < width * 0.75 && y > height * 0.525 + width * 0.05 && y < height * 0.525 + width * 0.1 && players > 1) {
+							players--;
+							canvas.fillStyle = backColor;
+							canvas.fillRect(width * 0.4, height * 0.5, width * 0.225, width * 0.125);
+							canvas.fillStyle = foreColor;
+							canvas.fillText(players, width * 0.625, height * 0.5);
+						}
+						else if (x > width * 0.4 && x < width * 0.6 && y > height * 0.625 && y < height * 0.625 + width * 0.2) {
+							currentPlayer = Math.floor(Math.random() * players);
+							playerData = [];
+							for (var i = 0; i < players; i++)
+								playerData.push({ scores: { die1: -1, die2: -1, die3: -1, die4: -1, die5: -1, die6: -1,
+									three: -1, four: -1, flhse: -1, smlst: -1, fulst: -1, yatzi: -1, chnc: -1 }, upper: 0, bonus: 0, total: 0, dice: [], locked: 0 });
+
+							return gameTransitionInit();
+						}
+					}
+				};
+
+				var gameTransitionInit = function () {
+					console.log('gameTransitionInit');
+
+					state = 1;
+
+					canvas.fillStyle = backColor;
+					canvas.fillRect(0, 0, width, height);
+
+					canvas.fillStyle = foreColor;
+
+					activePlayers = [];
+					var fieldsToGo;
+					for (var j = 0; j < players; j++) {
+						fieldsToGo = 0;
+						for (i in playerData[j].scores) {
+							if (playerData[j].scores.hasOwnProperty(i) && playerData[j].scores[i] === -1) {
+								fieldsToGo++;
+							}
+						}
+						if (fieldsToGo) activePlayers.push(j);
+					}
+
+					if (!activePlayers.length) return endInit();
+
+					var scores = playerData.map(function (a, i) { return [i, a.total]; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3);
+
+					if (players > 1) {
+						do
+							currentPlayer = ++currentPlayer % players;
+						while (activePlayers.indexOf(currentPlayer) === -1)
+
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'center';
+						canvas.fillText('Pass to P' + (currentPlayer + 1), width * 0.5, height * 0.35);
+						canvas.font = (width * 0.075) + 'px Signika';
+						canvas.fillStyle = foreColor2;
+						canvas.fillText('TAP', width * 0.5, height * 0.5);
+						canvas.fillStyle = foreColor;
+						for (var i = 0; i < scores.length; i++)
+							canvas.fillText('P' + (scores[i][0] + 1) + '  ' + scores[i][1], width * 0.5, height * (0.65 + i * 0.075));
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'right';
+					}	
+					else {
+						gameTransitionHandle();
+					}
+				};
+
+				var gameTransitionHandle = function (e) {
+					console.log('gameTransitionHandle');
+
+					gamePlayInit();
+				};
+
+				var gamePlayInit = function () {
+					console.log('gamePlayInit')
+
+					state = 2;
+
+					turn = 0;
+					playerData[currentPlayer].dice = [];
+					playerData[currentPlayer].locked = 0;
+					gamePlayGetValidChoices();
+
+					canvas.fillStyle = backColor;
+					canvas.fillRect(0, 0, width, height);
+
+					canvas.fillStyle = foreColor;
+					canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+						width * 0.1, height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+					canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+						width * 0.27, height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+					canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+						width * 0.44, height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+					canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+						width * 0.61, height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+					canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+						width * 0.78, height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+
+					gamePlayRedrawBoard();
+					gamePlayRollDice();
+				};
+
+				var gamePlayRedrawBoard = function () {
+					console.log('gamePlayRedrawBoard');
+
+					canvas.fillStyle = backColor;
+					canvas.fillRect(0, height * 0.3, width, height * 0.7);
+
+					gamePlayCalculateTotal();
+					gamePlayGetValidChoices();
+					canvas.fillStyle = foreColor;
+
+					canvas.drawImage(sprites, validChoices.die1 ? offsets.die1.x2: offsets.die1.x,
+						validChoices.die1 ? offsets.die1.y2 : offsets.die1.y, 
+						offsets.die1.w, offsets.die1.h, width * 0.1, height * 0.3, width * 0.075, width * 0.075 * offsets.die1.h / offsets.die1.w);
+					canvas.drawImage(sprites, validChoices.die2 ? offsets.die2.x2: offsets.die2.x,
+						validChoices.die2 ? offsets.die2.y2 : offsets.die2.y, 
+						offsets.die2.w, offsets.die2.h, width * 0.1, height * 0.375, width * 0.075, width * 0.075 * offsets.die2.h / offsets.die2.w);
+					canvas.drawImage(sprites, validChoices.die3 ? offsets.die3.x2: offsets.die3.x,
+						validChoices.die3 ? offsets.die3.y2 : offsets.die3.y, 
+						offsets.die3.w, offsets.die3.h, width * 0.1, height * 0.450, width * 0.075, width * 0.075 * offsets.die3.h / offsets.die3.w);
+					canvas.drawImage(sprites, validChoices.die4 ? offsets.die4.x2: offsets.die4.x,
+						validChoices.die4 ? offsets.die4.y2 : offsets.die4.y, 
+						offsets.die4.w, offsets.die4.h, width * 0.1, height * 0.525, width * 0.075, width * 0.075 * offsets.die4.h / offsets.die4.w);
+					canvas.drawImage(sprites, validChoices.die5 ? offsets.die5.x2: offsets.die5.x,
+						validChoices.die5 ? offsets.die5.y2 : offsets.die5.y, 
+						offsets.die5.w, offsets.die5.h, width * 0.1, height * 0.6, width * 0.075, width * 0.075 * offsets.die5.h / offsets.die5.w);
+					canvas.drawImage(sprites, validChoices.die6 ? offsets.die6.x2: offsets.die6.x,
+						validChoices.die6 ? offsets.die6.y2 : offsets.die6.y, 
+						offsets.die6.w, offsets.die6.h, width * 0.1, height * 0.675, width * 0.075, width * 0.075 * offsets.die6.h / offsets.die6.w);
+
+					canvas.drawImage(sprites, validChoices.three ? offsets.three.x2: offsets.three.x,
+						validChoices.three ? offsets.three.y2 : offsets.three.y, 
+						offsets.three.w, offsets.three.h, width * 0.6, height * 0.3, width * 0.075, width * 0.075 * offsets.three.h / offsets.three.w);
+					canvas.drawImage(sprites, validChoices.four ? offsets.four.x2: offsets.four.x,
+						validChoices.four ? offsets.four.y2 : offsets.four.y, 
+						offsets.four.w, offsets.four.h, width * 0.6, height * 0.375, width * 0.075, width * 0.075 * offsets.four.h / offsets.four.w);
+					canvas.drawImage(sprites, validChoices.flhse ? offsets.flhse.x2: offsets.flhse.x,
+						validChoices.flhse ? offsets.flhse.y2 : offsets.flhse.y, 
+						offsets.flhse.w, offsets.flhse.h, width * 0.6, height * 0.450, width * 0.075, width * 0.075 * offsets.flhse.h / offsets.flhse.w);
+					canvas.drawImage(sprites, validChoices.smlst ? offsets.smlst.x2: offsets.smlst.x,
+						validChoices.smlst ? offsets.smlst.y2 : offsets.smlst.y, 
+						offsets.smlst.w, offsets.smlst.h, width * 0.6, height * 0.525, width * 0.075, width * 0.075 * offsets.smlst.h / offsets.smlst.w);
+					canvas.drawImage(sprites, validChoices.fulst ? offsets.fulst.x2: offsets.fulst.x,
+						validChoices.fulst ? offsets.fulst.y2 : offsets.fulst.y, 
+						offsets.fulst.w, offsets.fulst.h, width * 0.6, height * 0.6, width * 0.075, width * 0.075 * offsets.fulst.h / offsets.fulst.w);
+					canvas.drawImage(sprites, validChoices.yatzi ? offsets.yatzi.x2: offsets.yatzi.x,
+						validChoices.yatzi ? offsets.yatzi.y2 : offsets.yatzi.y, 
+						offsets.yatzi.w, offsets.yatzi.h, width * 0.6, height * 0.675, width * 0.075, width * 0.075 * offsets.yatzi.h / offsets.yatzi.w);
+					canvas.drawImage(sprites, validChoices.chnc ? offsets.chnc.x2: offsets.chnc.x,
+						validChoices.chnc ? offsets.chnc.y2 : offsets.chnc.y, 
+						offsets.chnc.w, offsets.chnc.h, width * 0.6, height * 0.750, width * 0.075, width * 0.075 * offsets.chnc.h / offsets.chnc.w);
+
+					canvas.fillStyle = foreColor2;
+					canvas.font = (width * 0.075) + 'px Signika';
+
+					if (playerData[currentPlayer].scores.die1 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die1, width * 0.4, height * 0.3);
+					if (playerData[currentPlayer].scores.die2 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die2, width * 0.4, height * 0.375);
+					if (playerData[currentPlayer].scores.die3 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die3, width * 0.4, height * 0.450);
+					if (playerData[currentPlayer].scores.die4 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die4, width * 0.4, height * 0.525);
+					if (playerData[currentPlayer].scores.die5 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die5, width * 0.4, height * 0.6);
+					if (playerData[currentPlayer].scores.die6 !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.die6, width * 0.4, height * 0.675);
+
+					if (playerData[currentPlayer].scores.three !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.three, width * 0.9, height * 0.3);
+					if (playerData[currentPlayer].scores.four !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.four, width * 0.9, height * 0.375);
+					if (playerData[currentPlayer].scores.flhse !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.flhse, width * 0.9, height * 0.450);
+					if (playerData[currentPlayer].scores.smlst !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.smlst, width * 0.9, height * 0.525);
+					if (playerData[currentPlayer].scores.fulst !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.fulst, width * 0.9, height * 0.6);
+					if (playerData[currentPlayer].scores.yatzi !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.yatzi, width * 0.9, height * 0.675);
+					if (playerData[currentPlayer].scores.chnc !== -1)
+						canvas.fillText(playerData[currentPlayer].scores.chnc, width * 0.9, height * 0.750);
+
+					canvas.fillStyle = foreColor;
+
+					if (playerData[currentPlayer].bonus) {
+						canvas.fillText('+' + playerData[currentPlayer].bonus, width * 0.4, height * 0.750);
+					}
+					else {
+						canvas.fillStyle = foreColor2;
+						canvas.fillText(playerData[currentPlayer].upper, width * 0.4, height * 0.750);
+						canvas.fillStyle = foreColor;
+					}
+
+					canvas.font = (width * 0.125) + 'px Signika';
+					canvas.textAlign = 'left';
+					canvas.fillText(playerData[currentPlayer].total, width * 0.1, height * 0.825 + width * 0.0175);
+					canvas.textAlign = 'right';
+					
+					canvas.font = (width * 0.075) + 'px Signika';
+					if ((validChoices.die1 || turn >= 3) && (playerData[currentPlayer].scores.die1 === -1))
+						canvas.fillText(validChoices.die1, width * 0.4, height * 0.3);
+					if ((validChoices.die2 || turn >= 3) && (playerData[currentPlayer].scores.die2 === -1))
+						canvas.fillText(validChoices.die2, width * 0.4, height * 0.375);
+					if ((validChoices.die3 || turn >= 3) && (playerData[currentPlayer].scores.die3 === -1))
+						canvas.fillText(validChoices.die3, width * 0.4, height * 0.450);
+					if ((validChoices.die4 || turn >= 3) && (playerData[currentPlayer].scores.die4 === -1))
+						canvas.fillText(validChoices.die4, width * 0.4, height * 0.525);
+					if ((validChoices.die5 || turn >= 3) && (playerData[currentPlayer].scores.die5 === -1))
+						canvas.fillText(validChoices.die5, width * 0.4, height * 0.6);
+					if ((validChoices.die6 || turn >= 3) && (playerData[currentPlayer].scores.die6 === -1))
+						canvas.fillText(validChoices.die6, width * 0.4, height * 0.675);
+					
+					if ((validChoices.three || turn >= 3) && (playerData[currentPlayer].scores.three === -1))
+						canvas.fillText(validChoices.three, width * 0.9, height * 0.3);
+					if ((validChoices.four || turn >= 3) && (playerData[currentPlayer].scores.four === -1))
+						canvas.fillText(validChoices.four, width * 0.9, height * 0.375);
+					if ((validChoices.flhse || turn >= 3) && (playerData[currentPlayer].scores.flhse === -1))
+						canvas.fillText(validChoices.flhse, width * 0.9, height * 0.450);
+					if ((validChoices.smlst || turn >= 3) && (playerData[currentPlayer].scores.smlst === -1))
+						canvas.fillText(validChoices.smlst, width * 0.9, height * 0.525);
+					if ((validChoices.fulst || turn >= 3) && (playerData[currentPlayer].scores.fulst === -1))
+						canvas.fillText(validChoices.fulst, width * 0.9, height * 0.6);
+					if ((validChoices.yatzi || turn >= 3) && (playerData[currentPlayer].scores.yatzi === -1))
+						canvas.fillText(validChoices.yatzi, width * 0.9, height * 0.675);
+					if ((validChoices.chnc || turn >= 3) && (playerData[currentPlayer].scores.chnc === -1))
+						canvas.fillText(validChoices.chnc, width * 0.9, height * 0.750);
+
+					if (playerData[currentPlayer].dice.length)
+						for (var i = 0; i < 5; i++) {
+							canvas.fillStyle = backColor;
+							canvas.fillRect(width * (0.1 + i * 0.17), height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+							canvas.fillStyle = foreColor;
+							if (playerData[currentPlayer].locked & Math.pow(2, i)) {
+								canvas.drawImage(sprites, offsets.outln.x2, offsets.outln.y2, offsets.outln.w, offsets.outln.h,
+									width * (0.1 + i * 0.17), height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+								canvas.drawImage(sprites, offsets['die'+playerData[currentPlayer].dice[i]].x2, offsets['die'+playerData[currentPlayer].dice[i]].y2, 
+									offsets['die'+playerData[currentPlayer].dice[i]].w, offsets['die'+playerData[currentPlayer].dice[i]].h, 
+									width * (0.112 + i * 0.17), height * 0.1 + width * 0.012, width * 0.096,
+									width * 0.096 * offsets['die'+playerData[currentPlayer].dice[i]].h / offsets['die'+playerData[currentPlayer].dice[i]].w);
+							}
+							else {
+								canvas.drawImage(sprites, offsets.outln.x, offsets.outln.y, offsets.outln.w, offsets.outln.h,
+									width * (0.1 + i * 0.17), height * 0.1, width * 0.12, width * 0.12 * offsets.outln.h / offsets.outln.w);
+								canvas.drawImage(sprites, offsets['die'+playerData[currentPlayer].dice[i]].x, offsets['die'+playerData[currentPlayer].dice[i]].y, 
+									offsets['die'+playerData[currentPlayer].dice[i]].w, offsets['die'+playerData[currentPlayer].dice[i]].h, 
+									width * (0.112 + i * 0.17), height * 0.1 + width * 0.012, width * 0.096,
+									width * 0.096 * offsets['die'+playerData[currentPlayer].dice[i]].h / offsets['die'+playerData[currentPlayer].dice[i]].w);
+							}
+						}
+
+					if (turn < 3)
+						canvas.drawImage(sprites, offsets.go.x2, offsets.go.y2, offsets.go.w, offsets.go.h,
+							width * 0.74, height * 0.825, width * 0.16, width * 0.16 * offsets.go.h / offsets.go.w);
+				}
+
+				gamePlayRollDice = function () {
+					console.log('gamePlayRollDice');
+
+					turn++;
+
+					var oldDice = playerData[currentPlayer].dice.slice(0);
+					var randomDice = []
+
+					var frame = 0;
+					var updateView = function () {
+						canvas.fillStyle = backColor;
+						for (var i = 0; i < 5; i++) {
+							if (!( playerData[currentPlayer].locked & Math.pow(2, i) ) && frame > i * 2 && frame < 11 + i * 2) {
+								if (frame === i * 2 + 1) {
+									playerData[currentPlayer].dice[i] = Math.floor(Math.random() * 6) + 1;
+									if (oldDice.length > 0)
+										randomDice[i] = gamePlayGetCommonNeighbour(oldDice[i], playerData[currentPlayer].dice[i]);
+								}
+
+								canvas.fillRect(width * (0.112 + i * 0.17), height * 0.1 + width * 0.012,
+									width * 0.096, width * 0.096 * offsets.outln.h / offsets.outln.w);
+								
+								if (frame > 5 + i * 2)
+									canvas.drawImage(sprites, offsets['die' + playerData[currentPlayer].dice[i]].x,
+										offsets['die' + playerData[currentPlayer].dice[i]].y,
+										offsets['die' + playerData[currentPlayer].dice[i]].w,
+										offsets['die' + playerData[currentPlayer].dice[i]].h,
+										width * (0.112 + i * 0.17), height * 0.1 + width * 0.012, width * 0.096,
+										width * 0.00096 * Math.pow(2 * (frame - 5 - i * 2), 2)
+										* offsets['die' + playerData[currentPlayer].dice[i]].h / offsets['die' + playerData[currentPlayer].dice[i]].w);
+
+								if (oldDice.length > 0 && frame < 6 + i * 2) {
+									canvas.drawImage(sprites, offsets['die' + oldDice[i]].x,
+										offsets['die' + oldDice[i]].y,
+										offsets['die' + oldDice[i]].w,
+										offsets['die' + oldDice[i]].h,
+										width * (0.112 + i * 0.17), height * 0.1 + width * (0.012 + 0.00096 * Math.pow(2 * (frame - i * 2), 2)), width * 0.096,
+										width * 0.00096 * (100 - Math.pow(2 * (frame - i * 2), 2))
+										* offsets['die' + oldDice[i]].h / offsets['die' + oldDice[i]].w);
+
+									canvas.drawImage(sprites, offsets['die' + randomDice[i]].x,
+										offsets['die' + randomDice[i]].y,
+										offsets['die' + randomDice[i]].w,
+										offsets['die' + randomDice[i]].h,
+										width * (0.112 + i * 0.17), height * 0.1 + width * 0.012, width * 0.096,
+										width * 0.00096 * Math.pow(2 * (frame - i * 2), 2)
+										* offsets['die' + randomDice[i]].h / offsets['die' + randomDice[i]].w);
+								}
+
+								if (oldDice.length > 0 && frame > 5 + i * 2)
+									canvas.drawImage(sprites, offsets['die' + randomDice[i]].x,
+										offsets['die' + randomDice[i]].y,
+										offsets['die' + randomDice[i]].w,
+										offsets['die' + randomDice[i]].h,
+										width * (0.112 + i * 0.17), height * 0.1 + width * (0.012 + 0.00096 * Math.pow(2 * (frame - 5 - i * 2), 2)), width * 0.096,
+										width * 0.00096 * (100 - Math.pow(2 * (frame - 5 - i * 2), 2))
+										* offsets['die' + randomDice[i]].h / offsets['die' + randomDice[i]].w);
+							}
+						}
+						if (frame === 18) gamePlayRedrawBoard();
+						if (++frame < 30) window.setTimeout(updateView, 1000 / 30);
+					};
+					updateView();
+				}
+
+				var gamePlayGetCommonNeighbour = function (a,b) {
+					console.log('gamePlayGetCommonNeighbour');
+
+					var n = Math.floor(Math.random() * 6) + 1;
+					while (n === a || n === b || n === 7 - a || n === 7 - b)
+						if (++n > 6) n = 1;
+					return n;
+				}
+
+				var gamePlayGetValidChoices = function () {
+					console.log('gamePlayGetValidChoices');
+
+					validChoices = { die1: 0, die2: 0, die3: 0, die4: 0, die5: 0, die6: 0, bonus: 0,
+						three: 0, four: 0, flhse: 0, smlst: 0, fulst: 0, yatzi: 0, chnc: 0 };
+
+					var current = 0, sum = playerData[currentPlayer].dice.reduce(function (a, b) { return a + b; }, 0), twoFlag = false, threeFlag = false;
+
+					for (var i = 1; i <= 6; i++) {
+						current = playerData[currentPlayer].dice.reduce(function (a, b) { return (b === i) ? ++a : a; }, 0);
+						if (current > 0 && playerData[currentPlayer].scores['die' + i] === -1)
+							validChoices['die' + i] = current * i;
+						if (current === 2 && threeFlag || current === 3 && twoFlag && (playerData[currentPlayer].scores.flhse === -1)) {
+							validChoices.flhse = 25;
+						}
+						if (current === 2) {
+							twoFlag = true;
+						}
+						if (current >= 3 && !threeFlag) {
+							if (playerData[currentPlayer].scores.three === -1)
+								validChoices.three = sum;
+							threeFlag = true;
+						}
+						if (current >= 4 && (playerData[currentPlayer].scores.four === -1))
+							validChoices.four = sum;
+						if (current === 5)
+							validChoices.yatzi += (playerData[currentPlayer].scores.yatzi === -1) ? 50 : 100
+					}
+
+					var powerVal = playerData[currentPlayer].dice.reduce(function (a, b) { return a | Math.pow(2, b - 1); }, 0);
+					if (((powerVal & 31) === 31 || (powerVal & 62) === 62) && (playerData[currentPlayer].scores.fulst === -1))
+						validChoices.fulst = 40;
+					if (((powerVal & 15) === 15 || (powerVal & 30) === 30 || (powerVal & 60) === 60) && (playerData[currentPlayer].scores.smlst === -1))
+						validChoices.smlst = 30;
+
+					if (playerData[currentPlayer].scores.chnc === -1)
+						validChoices.chnc = sum;
+				}
+
+				var gamePlayCalculateTotal = function () {
+					console.log('gamePlayCalculateTotal');
+
+					var upper = 0;
+					playerData[currentPlayer].total = 0;
+					for (i in playerData[currentPlayer].scores) {
+						if (playerData[currentPlayer].scores.hasOwnProperty(i) && playerData[currentPlayer].scores[i] !== -1) {
+							if (i.slice(0, 3) === 'die')
+								upper += playerData[currentPlayer].scores[i];
+							playerData[currentPlayer].total += playerData[currentPlayer].scores[i];
+						}
+					}
+					playerData[currentPlayer].bonus = (upper >= 63) ? 35 : 0;
+					playerData[currentPlayer].upper = upper;
+					playerData[currentPlayer].total += playerData[currentPlayer].bonus;
+				}
+
+				var gamePlayHandle = function (e) {
+					console.log('gamePlayHandle');
+
+					for (var i = 0; i < e.changedTouches.length; i++) {
+						var x = e.changedTouches[i].clientX, y = e.changedTouches[i].clientY;
+
+						if (x > width * 0.1 && x < width * 0.22 && y > height * 0.1 && y < height * 0.1 + width * 0.12) {
+							playerData[currentPlayer].locked ^= 1;
+						}
+						else if (x > width * 0.27 && x < width * 0.39 && y > height * 0.1 && y < height * 0.1 + width * 0.12) {
+							playerData[currentPlayer].locked ^= 2;
+						}
+						else if (x > width * 0.44 && x < width * 0.56 && y > height * 0.1 && y < height * 0.1 + width * 0.12) {
+							playerData[currentPlayer].locked ^= 4;
+						}
+						else if (x > width * 0.61 && x < width * 0.73 && y > height * 0.1 && y < height * 0.1 + width * 0.12) {
+							playerData[currentPlayer].locked ^= 8;
+						}
+						else if (x > width * 0.78 && x < width * 0.9 && y > height * 0.1 && y < height * 0.1 + width * 0.12) {
+							playerData[currentPlayer].locked ^= 16;
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.3 && y < height * 0.3 + width * 0.075 && (validChoices.die1 || turn >= 3)) {
+							playerData[currentPlayer].scores.die1 = validChoices.die1;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.375 && y < height * 0.375 + width * 0.075 && (validChoices.die2 || turn >= 3)) {
+							playerData[currentPlayer].scores.die2 = validChoices.die2;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.45 && y < height * 0.45 + width * 0.075 && (validChoices.die3 || turn >= 3)) {
+							playerData[currentPlayer].scores.die3 = validChoices.die3;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.525 && y < height * 0.525 + width * 0.075 && (validChoices.die4 || turn >= 3)) {
+							playerData[currentPlayer].scores.die4 = validChoices.die4;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.6 && y < height * 0.6 + width * 0.075 && (validChoices.die5 || turn >= 3)) {
+							playerData[currentPlayer].scores.die5 = validChoices.die5;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.1 && x < width * 0.4 && y > height * 0.675 && y < height * 0.675 + width * 0.075 && (validChoices.die6 || turn >= 3)) {
+							playerData[currentPlayer].scores.die6 = validChoices.die6;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.3 && y < height * 0.3 + width * 0.075 && (validChoices.three || turn >= 3)) {
+							playerData[currentPlayer].scores.three = validChoices.three;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.375 && y < height * 0.375 + width * 0.075 && (validChoices.four || turn >= 3)) {
+							playerData[currentPlayer].scores.four = validChoices.four;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.45 && y < height * 0.45 + width * 0.075 && (validChoices.flhse || turn >= 3)) {
+							playerData[currentPlayer].scores.flhse = validChoices.flhse;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.525 && y < height * 0.525 + width * 0.075 && (validChoices.smlst || turn >= 3)) {
+							playerData[currentPlayer].scores.smlst = validChoices.smlst;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.6 && y < height * 0.6 + width * 0.075 && (validChoices.fulst || turn >= 3)) {
+							playerData[currentPlayer].scores.fulst = validChoices.fulst;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.675 && y < height * 0.675 + width * 0.075 && (validChoices.yatzi || turn >= 3)) {
+							playerData[currentPlayer].scores.yatzi = validChoices.yatzi;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						else if (x > width * 0.6 && x < width * 0.9 && y > height * 0.75 && y < height * 0.75 + width * 0.075 && (validChoices.chnc || turn >= 3)) {
+							playerData[currentPlayer].scores.chnc = validChoices.chnc;
+							gamePlayCalculateTotal();
+							return gameTransitionInit();
+						}
+						
+						else if (x > width * 0.74 && x < width * 0.9 && y > height * 0.825 && y < height * 0.825 + width * 0.16) {
+							if (turn < 3)
+								gamePlayRollDice();
+						}
+					}
+					gamePlayRedrawBoard();
+				};
+
+				var endInit = function () {
+					console.log('endInit');
+
+					state = 3;
+
+					canvas.fillStyle = backColor;
+					canvas.fillRect(0, 0, width, height);
+
+					canvas.fillStyle = foreColor;
+
+					var scores = playerData.map(function (a, i) { return [i, a.total]; }).sort(function (a, b) { return b[1] - a[1]; });
+
+					if (players > 1) {
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'center';
+						canvas.fillText('P' + (scores[0] + 1) + ' wins', width * 0.5, height * 0.35);
+						canvas.font = (width * 0.075) + 'px Signika';
+						canvas.fillStyle = foreColor2;
+						canvas.fillText('TAP', width * 0.5, height * 0.5);
+						canvas.fillStyle = foreColor;
+						for (var i = 0; i < scores.length; i++)
+							canvas.fillText('P' + (scores[i][0] + 1) + '  ' + scores[i][1], width * 0.5, height * (0.65 + i * 0.075));
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'right';
+					}
+					else {
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'center';
+						canvas.fillText(scores[0][1], width * 0.5, height * 0.35);
+						canvas.font = (width * 0.075) + 'px Signika';
+						canvas.fillStyle = foreColor2;
+						canvas.fillText('TAP', width * 0.5, height * 0.5);
+						canvas.fillStyle = foreColor;
+						canvas.font = (width * 0.125) + 'px Signika';
+						canvas.textAlign = 'right';
+					}
+				};
+
+				var endHandle = function (e) {
+					console.log('endHandle');
+
+					sprites.onload();
+				}
+
+				// window.gamePlaySet = function (a, s) {
+				// 	playerData[currentPlayer].scores[a] = s;
+				// 	gamePlayCalculateTotal();
+				// 	gamePlayRedrawBoard();
+				// };
+
+				document.body.appendChild(canvas.canvas);
+			}
+		</script>
+	</head>
+</html>
